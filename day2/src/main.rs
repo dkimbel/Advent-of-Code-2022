@@ -188,3 +188,9 @@ impl Part2Analyzer {
             .sum()
     }
 }
+
+// eliminate need to clone
+// why anyhow didn't work?
+// why need line_content?
+// why Self:: necessary to prevent always getting first match?
+// any cleaner way to split str into chars? regex any better here?
