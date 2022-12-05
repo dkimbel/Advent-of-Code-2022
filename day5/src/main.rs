@@ -7,6 +7,11 @@ fn main() {
     tracker.execute_all();
     let solution_1 = tracker.top_chars();
     println!("Part 1 solution: {}", solution_1);
+
+    let mut tracker2 = StackTracker::new("resources/input_1");
+    tracker2.execute_all_multi_crate_move();
+    let solution_2 = tracker2.top_chars();
+    println!("Part 2 solution: {}", solution_2);
 }
 
 #[derive(Clone)]
@@ -80,11 +85,31 @@ impl StackTracker {
             .for_each(|command| self.execute(command))
     }
 
+    fn execute_all_multi_crate_move(&mut self) {
+        let commands = self.commands.clone();
+        commands
+            .iter()
+            .cloned()
+            .for_each(|command| self.execute_multi_crate_move(command))
+    }
+
     fn execute(&mut self, command: Command) {
         for _ in 0..command.num_crates {
             if let Some(removed_crate) = self.stacks[command.source_stack_index].pop_front() {
                 self.stacks[command.dest_stack_index].push_front(removed_crate);
             }
+        }
+    }
+
+    fn execute_multi_crate_move(&mut self, command: Command) {
+        let mut intermediate = VecDeque::new();
+        for _ in 0..command.num_crates {
+            if let Some(removed_crate) = self.stacks[command.source_stack_index].pop_front() {
+                intermediate.push_front(removed_crate);
+            }
+        }
+        for moved_crate in intermediate.into_iter() {
+            self.stacks[command.dest_stack_index].push_front(moved_crate);
         }
     }
 
