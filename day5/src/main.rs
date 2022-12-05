@@ -3,13 +3,13 @@ use std::collections::VecDeque;
 use std::fs;
 
 fn main() {
-    let mut tracker = StackTracker::new("resources/input_1", 9);
+    let mut tracker = StackTracker::new("resources/input_1");
     tracker.execute_all();
     let solution_1 = tracker.top_chars();
     println!("Part 1 solution: {}", solution_1);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Command {
     num_crates: usize,
     // indexes are zero-based
@@ -33,18 +33,19 @@ impl Command {
     }
 }
 
-#[derive(Debug)]
 struct StackTracker {
     stacks: Vec<VecDeque<char>>,
     commands: Vec<Command>,
 }
 
 impl StackTracker {
-    fn new(file_path: &str, num_stacks: usize) -> Self {
+    const NUM_STACKS: usize = 9;
+
+    fn new(file_path: &str) -> Self {
         let mut dividing_line = String::from("");
-        let mut stacks = Vec::with_capacity(num_stacks);
-        for n in 1..=num_stacks {
-            let end_chars = if n == num_stacks { "\n\n" } else { " " };
+        let mut stacks = Vec::with_capacity(Self::NUM_STACKS);
+        for n in 1..=Self::NUM_STACKS {
+            let end_chars = if n == Self::NUM_STACKS { "\n\n" } else { " " };
             dividing_line.push_str(&format!(" {} {}", n, end_chars));
             stacks.push(VecDeque::new());
         }
@@ -54,12 +55,12 @@ impl StackTracker {
         let (unparsed_crates, unparsed_commands) =
             (split_file.next().unwrap(), split_file.next().unwrap());
 
-        let crate_regex = Regex::new(r"(\[[A-Z]\]|   )").unwrap();
-        for (i, cap) in crate_regex.captures_iter(unparsed_crates).enumerate() {
-            let maybe_letter = cap[1].chars().collect::<Vec<_>>()[1];
-            if maybe_letter != ' ' {
-                let stack_index = i % num_stacks;
-                stacks[stack_index].push_back(maybe_letter);
+        for unparsed_crate_row in unparsed_crates.lines() {
+            for (i, char) in unparsed_crate_row.chars().enumerate() {
+                if char != ' ' && char != '[' && char != ']' {
+                    let stack_index = i / 4; // integer division
+                    stacks[stack_index].push_back(char);
+                }
             }
         }
 
@@ -68,10 +69,7 @@ impl StackTracker {
             commands.push(Command::new(unparsed_command));
         }
 
-        // Self { stacks, commands }
-        let instance = Self { stacks, commands };
-        println!("{:?}", instance);
-        instance
+        Self { stacks, commands }
     }
 
     fn execute_all(&mut self) {
