@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 fn main() {
-    let mut rope_simulator = RopeSimulator::new();
+    let mut rope_simulator = RopeSimulator::new(2);
     rope_simulator.simulate_from_file("resources/input_1");
     let solution_1 = rope_simulator.num_spaces_tail_visited();
     println!("Part 1 solution: {}", solution_1);
@@ -55,17 +55,15 @@ impl Movement {
 }
 
 struct RopeSimulator {
-    head_loc: Coords,
-    tail_loc: Coords,
+    knot_locs: Vec<Coords>,
     tail_visited: HashSet<Coords>,
 }
 
 impl RopeSimulator {
-    fn new() -> Self {
+    fn new(num_knots: usize) -> Self {
         let starting_loc = Coords { x: 0, y: 0 };
         Self {
-            head_loc: starting_loc,
-            tail_loc: starting_loc,
+            knot_locs: vec![starting_loc; num_knots],
             tail_visited: HashSet::from([starting_loc]),
         }
     }
@@ -89,9 +87,20 @@ impl RopeSimulator {
 
         while spaces_to_move > 0 {
             spaces_to_move -= 1;
-            self.head_loc = RopeSimulator::new_head_loc(self.head_loc, movement.direction);
-            self.tail_loc = RopeSimulator::new_tail_loc(self.head_loc, self.tail_loc);
-            self.tail_visited.insert(self.tail_loc);
+            let mut new_knot_locs = Vec::new();
+            let mut maybe_previous_knot_loc = None;
+            for (i, knot_loc) in self.knot_locs.iter().enumerate() {
+                let new_knot_loc = if i == 0 {
+                    RopeSimulator::new_head_loc(*knot_loc, movement.direction)
+                } else {
+                    let relative_head_loc = maybe_previous_knot_loc.unwrap();
+                    RopeSimulator::new_tail_loc(maybe_previous_knot_loc.unwrap(), *knot_loc)
+                };
+                maybe_previous_knot_loc = Some(new_knot_loc);
+                new_knot_locs.push(new_knot_loc);
+            }
+            self.knot_locs = new_knot_locs;
+            self.tail_visited.insert(maybe_previous_knot_loc.unwrap());
         }
     }
 
