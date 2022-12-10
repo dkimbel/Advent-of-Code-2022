@@ -5,6 +5,9 @@ fn main() {
     let analyzer = SignalAnalyzer::new("resources/input_1");
     let solution_1 = analyzer.signal_score();
     println!("Part 1 solution: {}", solution_1);
+
+    let solution_2 = analyzer.render();
+    println!("Part 2 solution: {}", solution_2);
 }
 
 enum Instruction {
@@ -47,6 +50,9 @@ struct SignalAnalyzer {
 impl SignalAnalyzer {
     const SIGNAL_SCORE_CYCLES: [i32; 6] = [20, 60, 100, 140, 180, 220];
     const REGISTER_X_INITIAL: i32 = 1;
+    const LIT_PIXEL: char = '#';
+    const DARK_PIXEL: char = '.';
+    const LINE_WIDTH: i32 = 40;
 
     fn new(file_path: &str) -> Self {
         let file = File::open(file_path).unwrap();
@@ -63,13 +69,31 @@ impl SignalAnalyzer {
                 })
             }
             use Instruction::*;
-            match instruction {
-                AddX { x } => register_x += x,
-                _ => (),
+            if let AddX { x } = instruction {
+                register_x += x
             }
         }
 
         Self { ticks }
+    }
+
+    fn render(&self) -> String {
+        let mut rendered = String::from("\n");
+        for (i, tick) in self.ticks.iter().enumerate() {
+            let cursor = (i as i32) % Self::LINE_WIDTH;
+            let pixel = if (cursor - 1) <= tick.x_register_during
+                && (cursor + 1) >= tick.x_register_during
+            {
+                Self::LIT_PIXEL
+            } else {
+                Self::DARK_PIXEL
+            };
+            rendered.push(pixel);
+            if cursor + 1 == Self::LINE_WIDTH {
+                rendered.push('\n');
+            }
+        }
+        rendered
     }
 
     fn signal_score(&self) -> i32 {
