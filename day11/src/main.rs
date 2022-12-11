@@ -7,7 +7,8 @@ fn main() {
     let solution_1 = simulator.simulate(20, Some(|worry| worry / 3));
     println!("Part 1 solution: {}", solution_1);
 
-    let solution_2 = simulator.simulate(10000, None);
+    let mut simulator_2 = MonkeySimulator::new("resources/input_1");
+    let solution_2 = simulator_2.simulate(10000, None);
     println!("Part 2 solution: {}", solution_2);
 }
 
@@ -145,18 +146,12 @@ impl MonkeySimulator {
 
     fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u64) -> u64>) -> u32 {
         let greatest_common_factor = self.greatest_common_factor();
-        println!("Greatest common factor: {}", greatest_common_factor);
 
-        for _ in 0..num_rounds {
+        for _ in 1..=num_rounds {
             for current_monkey_index in 0..self.monkeys.len() {
                 let mut monkey = self.monkeys[current_monkey_index].clone();
                 while let Some(item) = monkey.items.pop_front() {
-                    let remainder = item % greatest_common_factor;
-                    let item = if remainder == 0 {
-                        item / greatest_common_factor
-                    } else {
-                        remainder
-                    };
+                    let item = item % greatest_common_factor;
                     let after_eval = monkey.operation.evaluate(item);
                     monkey.num_items_inspected += 1;
                     let after_relief = match relief_fn {
