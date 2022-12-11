@@ -30,7 +30,7 @@ impl Operand {
 #[derive(Clone)]
 enum OpValue {
     Old,
-    Num(u32),
+    Num(u64),
 }
 
 impl OpValue {
@@ -38,7 +38,7 @@ impl OpValue {
         if str == "old" {
             Self::Old
         } else {
-            let parsed = str.parse::<u32>().unwrap();
+            let parsed = str.parse::<u64>().unwrap();
             Self::Num(parsed)
         }
     }
@@ -51,27 +51,25 @@ struct Operation {
 }
 
 impl Operation {
-    fn evaluate(&self, input: u32) -> u32 {
-        let value = match self.value {
-            OpValue::Old => input,
-            OpValue::Num(num) => num,
-        };
-        match self.operand {
-            Operand::Add => input + value,
-            Operand::Multiply => input * value,
+    fn evaluate(&self, input: u64) -> u64 {
+        match (&self.operand, &self.value) {
+            (Operand::Add, OpValue::Old) => input + input,
+            (Operand::Add, OpValue::Num(num)) => input + num,
+            (Operand::Multiply, OpValue::Old) => input * input,
+            (Operand::Multiply, OpValue::Num(num)) => input * num,
         }
     }
 }
 
 #[derive(Clone)]
 struct Target {
-    divisor: u32,
+    divisor: u64,
     true_monkey_index: usize,
     false_monkey_index: usize,
 }
 
 impl Target {
-    fn evaluate(&self, input: u32) -> usize {
+    fn evaluate(&self, input: u64) -> usize {
         if input % self.divisor == 0 {
             self.true_monkey_index
         } else {
@@ -82,7 +80,7 @@ impl Target {
 
 #[derive(Clone)]
 struct Monkey {
-    items: VecDeque<u32>,
+    items: VecDeque<u64>,
     operation: Operation,
     target: Target,
     num_items_inspected: u32,
@@ -105,16 +103,16 @@ impl MonkeySimulator {
 
         for unparsed in unparsed_monkeys {
             let cap = re.captures(unparsed).unwrap();
-            let items: VecDeque<u32> = cap[1]
+            let items: VecDeque<u64> = cap[1]
                 .split(", ")
-                .map(|s| s.parse::<u32>().unwrap())
+                .map(|s| s.parse::<u64>().unwrap())
                 .collect::<VecDeque<_>>();
             let operation = Operation {
                 operand: Operand::new(cap[2].parse::<char>().unwrap()),
                 value: OpValue::new(&cap[3]),
             };
             let target = Target {
-                divisor: cap[4].parse::<u32>().unwrap(),
+                divisor: cap[4].parse::<u64>().unwrap(),
                 true_monkey_index: cap[5].parse::<usize>().unwrap(),
                 false_monkey_index: cap[6].parse::<usize>().unwrap(),
             };
@@ -129,11 +127,36 @@ impl MonkeySimulator {
         Self { monkeys }
     }
 
-    fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u32) -> u32>) -> u32 {
+    // admittedly naive
+    fn greatest_common_factor(&self) -> u64 {
+        let monkey_divisors: Vec<u64> = self
+            .monkeys
+            .iter()
+            .map(|monkey| monkey.target.divisor)
+            .collect();
+        let all_multiplied = monkey_divisors.iter().product();
+        for n in 2..=all_multiplied {
+            if monkey_divisors.iter().all(|divisor| n % divisor == 0) {
+                return n;
+            }
+        }
+        panic!("Failed to find max common factor across monkeys!")
+    }
+
+    fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u64) -> u64>) -> u32 {
+        let greatest_common_factor = self.greatest_common_factor();
+        println!("Greatest common factor: {}", greatest_common_factor);
+
         for _ in 0..num_rounds {
             for current_monkey_index in 0..self.monkeys.len() {
                 let mut monkey = self.monkeys[current_monkey_index].clone();
                 while let Some(item) = monkey.items.pop_front() {
+                    let remainder = item % greatest_common_factor;
+                    let item = if remainder == 0 {
+                        item / greatest_common_factor
+                    } else {
+                        remainder
+                    };
                     let after_eval = monkey.operation.evaluate(item);
                     monkey.num_items_inspected += 1;
                     let after_relief = match relief_fn {
