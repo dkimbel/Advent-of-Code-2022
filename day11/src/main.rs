@@ -8,7 +8,7 @@ fn main() {
     println!("Part 1 solution: {}", solution_1);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Operand {
     Multiply,
     Add,
@@ -24,7 +24,7 @@ impl Operand {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum OpValue {
     Old,
     Num(u32),
@@ -41,7 +41,7 @@ impl OpValue {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Operation {
     operand: Operand,
     value: OpValue,
@@ -60,7 +60,7 @@ impl Operation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Target {
     divisor: u32,
     true_monkey_index: usize,
@@ -77,7 +77,7 @@ impl Target {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Monkey {
     items: VecDeque<u32>,
     operation: Operation,
@@ -94,7 +94,7 @@ impl MonkeySimulator {
         let file_content = fs::read_to_string(file_path).unwrap();
         let unparsed_monkeys = file_content.split("\n\n");
         let re = Regex::new(
-            r"^Monkey \d+:\n {2}Starting items: (\d|,| )+\n {2}Operation: new = old (\+|\*) (old|\d+)\n  Test: divisible by (\d+)\n {4}If true: throw to monkey (\d+)\n {4}If false: throw to monkey(\d+)$",
+            r"^Monkey \d+:\n {2}Starting items: ([\d, ]+)\n {2}Operation: new = old ([+*]) (old|\d+)\n {2}Test: divisible by (\d+)\n {4}If true: throw to monkey (\d+)\n {4}If false: throw to monkey (\d+)$",
         )
         .unwrap();
 
@@ -115,12 +115,20 @@ impl MonkeySimulator {
                 true_monkey_index: cap[5].parse::<usize>().unwrap(),
                 false_monkey_index: cap[6].parse::<usize>().unwrap(),
             };
-            monkeys.push(Monkey {
+            let monkey = Monkey {
                 items,
                 operation,
                 target,
                 num_items_inspected: 0,
-            });
+            };
+            println!("{:#?}", monkey);
+            monkeys.push(monkey)
+            // monkeys.push(Monkey {
+            //     items,
+            //     operation,
+            //     target,
+            //     num_items_inspected: 0,
+            // });
         }
 
         Self { monkeys }
@@ -132,6 +140,7 @@ impl MonkeySimulator {
                 let mut monkey = self.monkeys[current_monkey_index].clone();
                 while let Some(item) = monkey.items.pop_front() {
                     let after_eval = monkey.operation.evaluate(item);
+                    monkey.num_items_inspected += 1;
                     let after_relief = after_eval / 3;
                     let target_monkey_index = monkey.target.evaluate(after_relief);
                     let target_monkey = if current_monkey_index == target_monkey_index {
@@ -155,6 +164,6 @@ impl MonkeySimulator {
             .map(|monkey| monkey.num_items_inspected)
             .collect::<Vec<_>>();
         nums_inspected.sort_by(|a, b| b.cmp(a));
-        nums_inspected.iter().take(2).sum()
+        nums_inspected.iter().take(2).product()
     }
 }
