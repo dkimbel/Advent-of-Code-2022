@@ -84,7 +84,7 @@ struct Monkey {
     items: VecDeque<u64>,
     operation: Operation,
     target: Target,
-    num_items_inspected: u32,
+    num_items_inspected: u64,
 }
 
 struct MonkeySimulator {
@@ -144,7 +144,7 @@ impl MonkeySimulator {
         panic!("Failed to find max common factor across monkeys!")
     }
 
-    fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u64) -> u64>) -> u32 {
+    fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u64) -> u64>) -> u64 {
         let greatest_common_factor = self.greatest_common_factor();
 
         for _ in 1..=num_rounds {
@@ -173,7 +173,7 @@ impl MonkeySimulator {
         self.monkey_business()
     }
 
-    fn monkey_business(&self) -> u32 {
+    fn monkey_business(&self) -> u64 {
         let mut nums_inspected = self
             .monkeys
             .iter()
