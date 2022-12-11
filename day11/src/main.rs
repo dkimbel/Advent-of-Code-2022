@@ -8,6 +8,7 @@ fn main() {
     println!("Part 1 solution: {}", solution_1);
 }
 
+#[derive(Clone)]
 enum Operand {
     Multiply,
     Add,
@@ -23,6 +24,7 @@ impl Operand {
     }
 }
 
+#[derive(Clone)]
 enum OpValue {
     Old,
     Num(u32),
@@ -39,6 +41,7 @@ impl OpValue {
     }
 }
 
+#[derive(Clone)]
 struct Operation {
     operand: Operand,
     value: OpValue,
@@ -57,6 +60,7 @@ impl Operation {
     }
 }
 
+#[derive(Clone)]
 struct Target {
     divisor: u32,
     true_monkey_index: usize,
@@ -73,6 +77,7 @@ impl Target {
     }
 }
 
+#[derive(Clone)]
 struct Monkey {
     items: VecDeque<u32>,
     operation: Operation,
@@ -89,7 +94,7 @@ impl MonkeySimulator {
         let file_content = fs::read_to_string(file_path).unwrap();
         let unparsed_monkeys = file_content.split("\n\n");
         let re = Regex::new(
-            r"^Monkey \d+:\n  Starting items: (\d|,| )+\n  Operation: new = old (\+|\*) (old|\d+)\n  Test: divisible by (\d+)\n    If true: throw to monkey (\d+)\n    If false: throw to monkey(\d+)$",
+            r"^Monkey \d+:\n {2}Starting items: (\d|,| )+\n {2}Operation: new = old (\+|\*) (old|\d+)\n  Test: divisible by (\d+)\n {4}If true: throw to monkey (\d+)\n {4}If false: throw to monkey(\d+)$",
         )
         .unwrap();
 
@@ -121,18 +126,23 @@ impl MonkeySimulator {
         Self { monkeys }
     }
 
-    // TODO fix input parsing
-    // TODO deal with borrow checker here
     fn simulate(&mut self, num_rounds: u32) -> u32 {
         for _ in 0..num_rounds {
-            for mut monkey in self.monkeys.iter_mut() {
+            for current_monkey_index in 0..self.monkeys.len() {
+                let mut monkey = self.monkeys[current_monkey_index].clone();
                 while let Some(item) = monkey.items.pop_front() {
                     let after_eval = monkey.operation.evaluate(item);
                     let after_relief = after_eval / 3;
                     let target_monkey_index = monkey.target.evaluate(after_relief);
-                    let mut target_monkey = self.monkeys.get_mut(target_monkey_index).unwrap();
+                    let target_monkey = if current_monkey_index == target_monkey_index {
+                        &mut monkey
+                    } else {
+                        self.monkeys.get_mut(target_monkey_index).unwrap()
+                    };
                     target_monkey.items.push_back(after_relief);
                 }
+                // overwrite our main mutable vec's monkey with the copy whose items we just emptied
+                self.monkeys[current_monkey_index] = monkey;
             }
         }
         self.monkey_business()
