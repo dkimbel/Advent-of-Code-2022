@@ -6,6 +6,9 @@ fn main() {
     let mut simulator = MonkeySimulator::new("resources/input_1");
     let solution_1 = simulator.simulate(20, Some(|worry| worry / 3));
     println!("Part 1 solution: {}", solution_1);
+
+    let solution_2 = simulator.simulate(10000, None);
+    println!("Part 2 solution: {}", solution_2);
 }
 
 #[derive(Clone)]
@@ -137,7 +140,6 @@ impl MonkeySimulator {
                         Some(func) => func(after_eval),
                         None => after_eval,
                     };
-                    let after_relief = after_eval / 3;
                     let target_monkey_index = monkey.target.evaluate(after_relief);
                     let target_monkey = if current_monkey_index == target_monkey_index {
                         &mut monkey
