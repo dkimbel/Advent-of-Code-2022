@@ -4,11 +4,11 @@ use std::fs;
 
 fn main() {
     let mut simulator = MonkeySimulator::new("resources/input_1");
-    let solution_1 = simulator.simulate(20);
+    let solution_1 = simulator.simulate(20, Some(|worry| worry / 3));
     println!("Part 1 solution: {}", solution_1);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum Operand {
     Multiply,
     Add,
@@ -24,7 +24,7 @@ impl Operand {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum OpValue {
     Old,
     Num(u32),
@@ -41,7 +41,7 @@ impl OpValue {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Operation {
     operand: Operand,
     value: OpValue,
@@ -60,7 +60,7 @@ impl Operation {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Target {
     divisor: u32,
     true_monkey_index: usize,
@@ -77,7 +77,7 @@ impl Target {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Monkey {
     items: VecDeque<u32>,
     operation: Operation,
@@ -115,32 +115,28 @@ impl MonkeySimulator {
                 true_monkey_index: cap[5].parse::<usize>().unwrap(),
                 false_monkey_index: cap[6].parse::<usize>().unwrap(),
             };
-            let monkey = Monkey {
+            monkeys.push(Monkey {
                 items,
                 operation,
                 target,
                 num_items_inspected: 0,
-            };
-            println!("{:#?}", monkey);
-            monkeys.push(monkey)
-            // monkeys.push(Monkey {
-            //     items,
-            //     operation,
-            //     target,
-            //     num_items_inspected: 0,
-            // });
+            });
         }
 
         Self { monkeys }
     }
 
-    fn simulate(&mut self, num_rounds: u32) -> u32 {
+    fn simulate(&mut self, num_rounds: u32, relief_fn: Option<fn(u32) -> u32>) -> u32 {
         for _ in 0..num_rounds {
             for current_monkey_index in 0..self.monkeys.len() {
                 let mut monkey = self.monkeys[current_monkey_index].clone();
                 while let Some(item) = monkey.items.pop_front() {
                     let after_eval = monkey.operation.evaluate(item);
                     monkey.num_items_inspected += 1;
+                    let after_relief = match relief_fn {
+                        Some(func) => func(after_eval),
+                        None => after_eval,
+                    };
                     let after_relief = after_eval / 3;
                     let target_monkey_index = monkey.target.evaluate(after_relief);
                     let target_monkey = if current_monkey_index == target_monkey_index {
