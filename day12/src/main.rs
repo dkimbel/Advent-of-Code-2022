@@ -4,8 +4,11 @@ use std::io::{BufRead, BufReader};
 
 fn main() {
     let grid = Grid::new("resources/input_1");
-    let solution_1 = grid.fewest_steps_to_goal();
+    let solution_1 = grid.fewest_steps_to_goal(grid.start_coords).unwrap();
     println!("Part 1 solution: {}", solution_1);
+
+    let solution_2 = grid.fewest_steps_from_any_a();
+    println!("Part 2 solution: {}", solution_2);
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
@@ -70,11 +73,28 @@ impl Grid {
         self.heights[coords.y][coords.x]
     }
 
+    fn fewest_steps_from_any_a(&self) -> u32 {
+        let mut all_a_coords = Vec::new();
+        for (y, row) in self.heights.iter().enumerate() {
+            for (x, height) in row.iter().enumerate() {
+                if *height == 1 {
+                    all_a_coords.push(Coords { x, y });
+                }
+            }
+        }
+
+        all_a_coords
+            .iter()
+            .filter_map(|coords| self.fewest_steps_to_goal(*coords))
+            .min()
+            .unwrap()
+    }
+
     // breadth-first search
-    fn fewest_steps_to_goal(&self) -> u32 {
+    fn fewest_steps_to_goal(&self, start_coords: Coords) -> Option<u32> {
         let mut visited: HashSet<Coords> = HashSet::new();
         // tracks num steps taken so far along with coords
-        let mut to_visit: VecDeque<(Coords, u32)> = VecDeque::from([(self.start_coords, 0)]);
+        let mut to_visit: VecDeque<(Coords, u32)> = VecDeque::from([(start_coords, 0)]);
 
         while let Some((coords, steps_taken)) = to_visit.pop_front() {
             if visited.contains(&coords) {
@@ -82,7 +102,7 @@ impl Grid {
             }
             visited.insert(coords);
             if coords == self.goal_coords {
-                return steps_taken;
+                return Some(steps_taken);
             }
 
             let next_steps_taken = steps_taken + 1;
@@ -132,6 +152,6 @@ impl Grid {
                 }
             }
         }
-        panic!("Exhausted all possible paths without reaching goal");
+        None
     }
 }
