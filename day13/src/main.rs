@@ -2,7 +2,8 @@ use std::fs;
 
 fn main() {
     let comparer = PacketComparer::new("resources/input_1");
-    println!("{:#?}", comparer.pairs)
+    let solution_1 = comparer.ordering_score();
+    println!("Part 1 solution: {}", solution_1);
 }
 
 #[derive(Debug)]
@@ -100,5 +101,24 @@ impl PacketComparer {
         }
 
         Self { pairs }
+    }
+
+    // todo refactor to use Ord trait?
+    fn pair_correctly_ordered(pair: &(Packet, Packet)) -> bool {
+        // todo!()
+    }
+
+    fn ordering_score(&self) -> usize {
+        self.pairs
+            .iter()
+            .enumerate()
+            .map(|(i, pair)| {
+                if Self::pair_correctly_ordered(pair) {
+                    i + 1
+                } else {
+                    0
+                }
+            })
+            .sum()
     }
 }
