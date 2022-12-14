@@ -21,7 +21,7 @@ enum Token {
 impl Packet {
     fn new(input: &str) -> Self {
         let tokens = Self::tokenize(input);
-        Self::parse_list(&tokens[1..tokens.len()])
+        Self::parse_list(&tokens[1..tokens.len() - 1])
     }
 
     fn parse_list(tokens: &[Token]) -> Self {
@@ -33,12 +33,13 @@ impl Packet {
             let (packet, new_i) = match token {
                 Token::Val(n) => (Self::Val(*n), i + 1),
                 Token::ListStart { depth } => {
-                    let matching_end_i = tokens[i..tokens.len()]
+                    let matching_end_i_relative = tokens[i..tokens.len()]
                         .iter()
                         .position(|token| token == &Token::ListEnd { depth: *depth })
                         .unwrap();
+                    let matching_end_i = matching_end_i_relative + i;
                     (
-                        Self::parse_list(&tokens[i..matching_end_i]),
+                        Self::parse_list(&tokens[i + 1..matching_end_i]),
                         matching_end_i + 1,
                     )
                 }
