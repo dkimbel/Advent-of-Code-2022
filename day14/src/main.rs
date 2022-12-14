@@ -7,6 +7,8 @@ fn main() {
     let simulator = SandSimulator::new("resources/input_1");
     let sand_units = simulator.simulate();
     println!("Part 1 solution: {}", sand_units);
+    let sand_units_v2 = simulator.simulate_v2();
+    println!("Part 2 solution: {}", sand_units_v2);
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -49,6 +51,37 @@ struct SandSimulator {
 }
 
 impl SandSimulator {
+    fn simulate_v2(&self) -> usize {
+        let mut all_resting_sand_coords = HashSet::new();
+
+        while !all_resting_sand_coords.contains(&Coords::INITIAL_SAND) {
+            let mut sand_unit_coords = Coords::INITIAL_SAND;
+            loop {
+                let mut moved = false;
+                // TODO reduce code duplication
+                let (dest0, dest1, dest2) = sand_unit_coords.after_sand_move();
+                for dest in [dest0, dest1, dest2] {
+                    if !self.rock_coords.contains(&dest) && !all_resting_sand_coords.contains(&dest)
+                    {
+                        sand_unit_coords = dest;
+                        moved = true;
+                        break;
+                    }
+                }
+                // 'floor' is at max_y + 2, and cannot be occupied by sand
+                if !moved || sand_unit_coords.y == self.max_y + 1 {
+                    all_resting_sand_coords.insert(sand_unit_coords);
+                    break;
+                }
+            }
+            // create grain of sand
+            // move it until it comes to rest
+            //   use updated logic that caps y at max_y
+        }
+
+        all_resting_sand_coords.len()
+    }
+
     fn simulate(&self) -> usize {
         let mut all_resting_sand_coords = HashSet::new();
         let mut sand_reached_void = false;
