@@ -2,13 +2,16 @@ use std::fs;
 
 fn main() {
     let comparer = PacketComparer::new("resources/input_1");
+    println!("{:#?}", comparer.pairs)
 }
 
+#[derive(Debug)]
 enum Packet {
     List(Vec<Packet>),
     Val(u32),
 }
 
+#[derive(PartialEq, Eq)]
 enum Token {
     ListStart { depth: u32 },
     ListEnd { depth: u32 },
@@ -17,10 +20,35 @@ enum Token {
 
 impl Packet {
     fn new(input: &str) -> Self {
-        // TODO first make Vec<Token>, where Token can be ListStart(depth), Val(n), or ListEnd(depth)
         let tokens = Self::tokenize(input);
-        // Self::parse_list(&input[1..input.len()])
-        todo!()
+        Self::parse_list(&tokens[1..tokens.len()])
+    }
+
+    fn parse_list(tokens: &[Token]) -> Self {
+        let mut curr_list: Vec<Packet> = Vec::new();
+
+        let mut i = 0;
+        while i < tokens.len() {
+            let token = &tokens[i];
+            let (packet, new_i) = match token {
+                Token::Val(n) => (Self::Val(*n), i + 1),
+                Token::ListStart { depth } => {
+                    let matching_end_i = tokens[i..tokens.len()]
+                        .iter()
+                        .position(|token| token == &Token::ListEnd { depth: *depth })
+                        .unwrap();
+                    (
+                        Self::parse_list(&tokens[i..matching_end_i]),
+                        matching_end_i + 1,
+                    )
+                }
+                Token::ListEnd { .. } => panic!("Unexpected end-of-list token!"),
+            };
+            curr_list.push(packet);
+            i = new_i;
+        }
+
+        Self::List(curr_list)
     }
 
     fn tokenize(input: &str) -> Vec<Token> {
@@ -53,30 +81,10 @@ impl Packet {
 
         tokens
     }
-
-    fn parse_list(input: &str) -> Self {
-        let mut curr_list: Vec<Packet> = Vec::new();
-
-        let mut chunks = input.split(',');
-        for chunk in input.split(',') {
-            if chunk.starts_with('[') {
-                // TODO
-                //     excise chunks, ideally with takeWhile, until we find counterbalancing ends-in-]
-                //       first find index of chunk with final ']', then use take on mut iter
-                //     call parse_list on taken set of chunks (as &str?), minus braces
-                //     push the resulting list to own curr_list
-                //     continue processing add'l chunks
-                todo!()
-            } else {
-                curr_list.push(Packet::Val(chunk.parse::<u32>().unwrap()))
-            }
-        }
-        Packet::List(curr_list)
-    }
 }
 
 struct PacketComparer {
-    pairs: Vec<(Vec<Token>, Vec<Token>)>,
+    pairs: Vec<(Packet, Packet)>,
 }
 
 impl PacketComparer {
@@ -87,11 +95,7 @@ impl PacketComparer {
         let mut pairs = Vec::new();
         for unparsed_pair in unparsed_pairs {
             let (unparsed_left, unparsed_right) = unparsed_pair.split_once('\n').unwrap();
-            // pairs.push((Packet::new(unparsed_left), Packet::new(unparsed_right)));
-            pairs.push((
-                Packet::tokenize(unparsed_left),
-                Packet::tokenize(unparsed_right),
-            ));
+            pairs.push((Packet::new(unparsed_left), Packet::new(unparsed_right)));
         }
 
         Self { pairs }
