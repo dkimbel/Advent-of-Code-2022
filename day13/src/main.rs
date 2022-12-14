@@ -4,9 +4,11 @@ fn main() {
     let comparer = PacketComparer::new("resources/input_1");
     let solution_1 = comparer.ordering_score();
     println!("Part 1 solution: {}", solution_1);
+    let solution_2 = comparer.decode();
+    println!("Part 2 solution: {}", solution_2);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, PartialEq, Eq)]
 enum Packet {
     List(Vec<Packet>),
     Val(u32),
@@ -103,6 +105,42 @@ impl PacketComparer {
         Self { pairs }
     }
 
+    fn decode(&self) -> usize {
+        let mut merged_packets = Vec::new();
+        for (left, right) in &self.pairs {
+            merged_packets.push(left);
+            merged_packets.push(right);
+        }
+
+        let divider_packet_1 = Packet::List(vec![Packet::List(vec![Packet::Val(2)])]);
+        let divider_packet_2 = Packet::List(vec![Packet::List(vec![Packet::Val(6)])]);
+
+        merged_packets.push(&divider_packet_1);
+        merged_packets.push(&divider_packet_2);
+
+        // TODO avoid need for clone
+        use std::cmp::Ordering;
+        merged_packets.sort_by(|&p1, &p2| {
+            if Self::pair_correctly_ordered(&(p1.clone(), p2.clone())) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        // TODO avoid extra-gratuitous use of clone
+        let divider_1_index = merged_packets
+            .iter()
+            .position(|&p| p.clone() == divider_packet_1)
+            .unwrap();
+        let divider_2_index = merged_packets
+            .iter()
+            .position(|&p| p.clone() == divider_packet_2)
+            .unwrap();
+
+        (divider_1_index + 1) * (divider_2_index + 1) // one-based indexes
+    }
+
     // todo refactor to use Ord trait?
     fn pair_correctly_ordered(pair: &(Packet, Packet)) -> bool {
         let (Packet::List(v_left), Packet::List(v_right)) = pair else {panic!("Can only compare two list packets!")};
@@ -127,6 +165,7 @@ impl PacketComparer {
             use Packet::*;
             match (left, right) {
                 (Val(l), Val(r)) => {
+                    // TODO tend to clippy request to match on cmp
                     if l == r {
                         continue;
                     } else if l < r {
@@ -150,7 +189,7 @@ impl PacketComparer {
                         None => continue,
                     }
                 }
-                (lval @ Val(l), List(rl)) => {
+                (lval @ Val(_), List(rl)) => {
                     let maybe_result = Self::packet_lists_correctly_ordered(&[lval.clone()], rl);
                     match maybe_result {
                         res @ Some(_) => return res,
