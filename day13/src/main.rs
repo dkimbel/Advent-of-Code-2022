@@ -6,7 +6,7 @@ fn main() {
     println!("Part 1 solution: {}", solution_1);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Packet {
     List(Vec<Packet>),
     Val(u32),
@@ -105,7 +105,61 @@ impl PacketComparer {
 
     // todo refactor to use Ord trait?
     fn pair_correctly_ordered(pair: &(Packet, Packet)) -> bool {
-        // todo!()
+        let (Packet::List(v_left), Packet::List(v_right)) = pair else {panic!("Can only compare two list packets!")};
+        match Self::packet_lists_correctly_ordered(v_left, v_right) {
+            Some(b) => b,
+            None => panic!("Packets are completely equal!"),
+        }
+    }
+
+    fn packet_lists_correctly_ordered(left_list: &[Packet], right_list: &[Packet]) -> Option<bool> {
+        let max_len = std::cmp::max(left_list.len(), right_list.len());
+        for i in 0..max_len {
+            if i >= left_list.len() {
+                return Some(true);
+            } else if i >= right_list.len() {
+                return Some(false);
+            }
+
+            let left = &left_list[i];
+            let right = &right_list[i];
+
+            use Packet::*;
+            match (left, right) {
+                (Val(l), Val(r)) => {
+                    if l == r {
+                        continue;
+                    } else if l < r {
+                        return Some(true);
+                    } else if l > r {
+                        return Some(false);
+                    }
+                }
+                // TODO reduce repetition
+                (List(ll), List(rl)) => {
+                    let maybe_result = Self::packet_lists_correctly_ordered(ll, rl);
+                    match maybe_result {
+                        res @ Some(_) => return res,
+                        None => continue,
+                    }
+                }
+                (List(ll), rval @ Val(_)) => {
+                    let maybe_result = Self::packet_lists_correctly_ordered(ll, &[rval.clone()]);
+                    match maybe_result {
+                        res @ Some(_) => return res,
+                        None => continue,
+                    }
+                }
+                (lval @ Val(l), List(rl)) => {
+                    let maybe_result = Self::packet_lists_correctly_ordered(&[lval.clone()], rl);
+                    match maybe_result {
+                        res @ Some(_) => return res,
+                        None => continue,
+                    }
+                }
+            }
+        }
+        None
     }
 
     fn ordering_score(&self) -> usize {
