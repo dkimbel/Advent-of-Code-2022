@@ -71,6 +71,7 @@ impl SandSimulator {
                     break;
                 } else if sand_unit_coords.y > self.max_y {
                     sand_reached_void = true;
+                    break;
                 }
             }
         }
