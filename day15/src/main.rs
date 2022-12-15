@@ -7,12 +7,11 @@ use regex::Regex;
 
 fn main() {
     let analyzer = SensorAnalyzer::new("resources/input_1");
-    // let solution_1 = analyzer.num_coords_in_range_on_row(20_000);
-    let solution_1 = analyzer.num_coords_in_range_on_row(10);
+    let solution_1 = analyzer.num_coords_in_range_on_row(2_000_000);
     println!("Part 1 solution: {}", solution_1);
 }
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 struct Coords {
     x: i32,
     y: i32,
@@ -26,7 +25,8 @@ struct Sensor {
 impl Sensor {
     fn in_range(&self, coords: &Coords) -> bool {
         let manhattan = (coords.x - self.coords.x).abs() + (coords.y - self.coords.y).abs();
-        manhattan <= self.nearest_beacon_manhattan
+        // if manhattan were zero, sensor would be occupying space; doesn't count as in range
+        manhattan <= self.nearest_beacon_manhattan && manhattan != 0
     }
 }
 
@@ -122,10 +122,14 @@ impl SensorAnalyzer {
 
         for x in self.min_x_in_range..=self.max_x_in_range {
             let coords = Coords { x, y };
+            let possible_beacon = Beacon { coords };
+            if self.beacons.contains(&possible_beacon) {
+                continue; // this spot is already occupied by a beacon
+            }
             for sensor in &self.sensors {
                 if sensor.in_range(&coords) {
                     num_coords_in_range += 1;
-                    continue;
+                    break;
                 }
             }
         }
