@@ -8,10 +8,8 @@ use regex::Regex;
 fn main() {
     let analyzer = SensorAnalyzer::new("resources/input_1");
     // let solution_1 = analyzer.num_coords_in_range_on_row(2_000_000);
-    let solution_1 = analyzer.num_coords_in_range_on_row(10);
-    println!("Part 1 solution: {}", solution_1);
-    // let distress_beacon = analyzer.find_beacon_in_range(0, 4_000_000);
-    let distress_beacon = analyzer.find_beacon_in_range(0, 20);
+    // println!("Part 1 solution: {}", solution_1);
+    let distress_beacon = analyzer.find_beacon_in_range(0, 4_000_000);
     let solution_2 = distress_beacon.tuning_frequency();
     println!("Part 2 solution: {}", solution_2);
 }
@@ -61,8 +59,8 @@ impl Sensor {
             None
         } else {
             Some(XRange {
-                min: self.coords.x - (available_x_distance / 2),
-                max: self.coords.x + (available_x_distance / 2),
+                min: self.coords.x - available_x_distance,
+                max: self.coords.x + available_x_distance,
             })
         }
     }
@@ -84,8 +82,6 @@ struct SensorAnalyzer {
     sensors: Vec<Sensor>,
     min_x_in_range: i32,
     max_x_in_range: i32,
-    min_y_in_range: i32,
-    max_y_in_range: i32,
 }
 
 impl SensorAnalyzer {
@@ -105,7 +101,7 @@ impl SensorAnalyzer {
             for x_range in x_ranges {
                 if let Some(max_x) = maybe_max_x {
                     if x_range.min > max_x {
-                        if x_range.min - max_x > 1 {
+                        if x_range.min - max_x > 2 {
                             panic!("Found more than one empty spot for beacon!")
                         } else {
                             return Beacon {
@@ -135,8 +131,6 @@ impl SensorAnalyzer {
         let mut sensors = Vec::new();
         let mut min_x_in_range = None;
         let mut max_x_in_range = None;
-        let mut min_y_in_range = None;
-        let mut max_y_in_range = None;
 
         for line in reader.lines() {
             let line_content = line.unwrap();
@@ -172,16 +166,6 @@ impl SensorAnalyzer {
                 None => Some(max_x),
                 Some(x) => Some(cmp::max(x, max_x)),
             };
-            let min_y = sensor_y - manhattan;
-            min_y_in_range = match min_y_in_range {
-                None => Some(min_y),
-                Some(y) => Some(cmp::min(y, min_y)),
-            };
-            let max_y = sensor_y + manhattan;
-            max_y_in_range = match max_y_in_range {
-                None => Some(max_y),
-                Some(y) => Some(cmp::max(y, max_y)),
-            };
         }
 
         Self {
@@ -189,8 +173,6 @@ impl SensorAnalyzer {
             sensors,
             min_x_in_range: min_x_in_range.unwrap(),
             max_x_in_range: max_x_in_range.unwrap(),
-            min_y_in_range: min_y_in_range.unwrap(),
-            max_y_in_range: max_y_in_range.unwrap(),
         }
     }
 
