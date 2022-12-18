@@ -1,5 +1,5 @@
 use std::cmp;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -7,7 +7,7 @@ use regex::Regex;
 
 fn main() {
     let searcher = PathSearcher::new("resources/input_1");
-    let solution_1 = searcher.find_max_total_flow();
+    let solution_1 = searcher.find_max_total_flow(30);
     println!("Part 1 solution: {}", solution_1);
 }
 
@@ -32,9 +32,9 @@ struct SearchState {
 }
 
 impl SearchState {
-    fn new() -> Self {
+    fn new(minutes: u32) -> Self {
         Self {
-            minutes_remaining: 0,
+            minutes_remaining: minutes,
             total_flow: 0,
             flow_per_minute: 0,
             open_valve_ids: HashSet::new(),
@@ -61,6 +61,52 @@ struct PathSearcher {
 }
 
 impl PathSearcher {
+    fn find_max_total_flow(&self, max_minutes: u32) -> u32 {
+        let mut best_total_flow = 0;
+        let mut search_states = VecDeque::from([SearchState::new(max_minutes)]);
+
+        while let Some(state) = search_states.pop_front() {
+            if state.minutes_remaining == 0 {
+                best_total_flow = cmp::max(best_total_flow, state.total_flow);
+                continue;
+            }
+
+            let current_valve = self.valves.get(&state.current_valve_id).unwrap();
+
+            // check if valve can be opened and is possibly worth opening (has nonzero flow rate)
+            if current_valve.flow_per_minute != 0
+                && !state.open_valve_ids.contains(&state.current_valve_id)
+            {
+                let mut new_open_valve_ids = state.open_valve_ids.clone();
+                new_open_valve_ids.insert(current_valve.id.clone());
+                search_states.push_back(SearchState {
+                    minutes_remaining: state.minutes_remaining - 1,
+                    total_flow: state.total_flow + state.flow_per_minute,
+                    flow_per_minute: state.flow_per_minute + current_valve.flow_per_minute,
+                    open_valve_ids: new_open_valve_ids,
+                    current_valve_id: state.current_valve_id.clone(),
+                });
+            }
+
+            // add a search state for moving to every possible adjacent room (somewhat naive)
+            for adjacent_valve_id in self.tunnel_locations.get(&current_valve.id).unwrap() {
+                let minutes_cost =
+                    Self::get_cost(&self.tunnel_costs, &current_valve.id, adjacent_valve_id);
+                if state.minutes_remaining >= minutes_cost {
+                    search_states.push_back(SearchState {
+                        minutes_remaining: state.minutes_remaining - minutes_cost,
+                        total_flow: state.total_flow + (state.flow_per_minute * minutes_cost),
+                        flow_per_minute: state.flow_per_minute,
+                        open_valve_ids: state.open_valve_ids.clone(),
+                        current_valve_id: state.current_valve_id.clone(),
+                    })
+                }
+            }
+        }
+
+        best_total_flow
+    }
+
     // it is probably possible to make this much more performant by doing way less cloning
     fn new(file_path: &str) -> Self {
         let file = File::open(file_path).unwrap();
@@ -110,9 +156,6 @@ impl PathSearcher {
             }
         }
 
-        println!("{:#?}", initial_valves);
-        println!("{:#?}", initial_tunnel_costs);
-        println!("{:#?}", initial_tunnel_locations);
         let mut valves = initial_valves.clone();
         let mut tunnel_costs = initial_tunnel_costs.clone();
         let mut tunnel_locations = initial_tunnel_locations.clone();
@@ -179,19 +222,11 @@ impl PathSearcher {
             // root or non-zero-flowrate valve: requires no modification
         }
 
-        println!("##########");
-        println!("{:#?}", valves);
-        println!("{:#?}", tunnel_costs);
-        println!("{:#?}", tunnel_locations);
         Self {
             valves,
             tunnel_costs,
             tunnel_locations,
         }
-    }
-
-    fn find_max_total_flow(&self) -> u32 {
-        todo!()
     }
 
     fn destroy_cost(
