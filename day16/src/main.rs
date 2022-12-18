@@ -23,6 +23,7 @@ impl Valve {
     const MINUTES_TO_ENTER: u32 = 1;
 }
 
+#[derive(Debug)]
 struct SearchState {
     minutes_remaining: u32,
     total_flow: u32,
@@ -61,13 +62,28 @@ struct PathSearcher {
 }
 
 impl PathSearcher {
+    // if this approach doesn't work, consider pre-computing the lowest-cost path from every
+    // room to every other room, and then having the search only attempt to reach unopened valves
     fn find_max_total_flow(&self, max_minutes: u32) -> u32 {
         let mut best_total_flow = 0;
         let mut search_states = VecDeque::from([SearchState::new(max_minutes)]);
 
         while let Some(state) = search_states.pop_front() {
+            println!(
+                "Best total flow: {}, minutes remaining: {}",
+                best_total_flow, state.minutes_remaining
+            );
             if state.minutes_remaining == 0 {
                 best_total_flow = cmp::max(best_total_flow, state.total_flow);
+                continue;
+            }
+
+            // check to see if all valves are open, EXCEPT for the single one we'd never
+            // open (the root valve)
+            if state.open_valve_ids.len() == self.valves.len() - 1 {
+                let upcoming_flow = state.minutes_remaining * state.flow_per_minute;
+                let final_flow = state.total_flow + upcoming_flow;
+                best_total_flow = cmp::max(best_total_flow, final_flow);
                 continue;
             }
 
@@ -98,7 +114,7 @@ impl PathSearcher {
                         total_flow: state.total_flow + (state.flow_per_minute * minutes_cost),
                         flow_per_minute: state.flow_per_minute,
                         open_valve_ids: state.open_valve_ids.clone(),
-                        current_valve_id: state.current_valve_id.clone(),
+                        current_valve_id: adjacent_valve_id.clone(),
                     })
                 }
             }
