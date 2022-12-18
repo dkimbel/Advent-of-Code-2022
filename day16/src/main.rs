@@ -71,7 +71,7 @@ impl PathSearcher {
                 .unwrap();
         let mut initial_valves = HashMap::new();
         let mut initial_tunnel_costs = HashMap::new();
-        let mut initial_tunnel_locations = HashMap::new();
+        let mut initial_tunnel_locations: HashMap<String, HashSet<String>> = HashMap::new();
 
         for line in reader.lines() {
             let line_content = line.unwrap();
@@ -102,11 +102,11 @@ impl PathSearcher {
                 let first_loc = initial_tunnel_locations
                     .entry(String::from(first_id))
                     .or_insert(HashSet::new());
-                first_loc.insert(second_id);
+                first_loc.insert(String::from(second_id));
                 let second_loc = initial_tunnel_locations
                     .entry(String::from(second_id))
                     .or_insert(HashSet::new());
-                second_loc.insert(first_id);
+                second_loc.insert(String::from(first_id));
             }
         }
 
@@ -127,7 +127,7 @@ impl PathSearcher {
                 // appropriately-increased 'costs' (minutes to travel through tunnel).
                 let adjacent_valve_ids = &tunnel_locations[&valve.id]
                     .iter()
-                    .cloned()
+                    .map(|&s| s)
                     .collect::<Vec<_>>();
                 let unique_adjacent_pairs = Self::unique_combinations(adjacent_valve_ids);
 
@@ -135,9 +135,8 @@ impl PathSearcher {
                 for (adjacent_1_id, adjacent_2_id) in unique_adjacent_pairs {
                     // add cost for the would-be new tunnel directly linking the two adjacent
                     // valves; but if there was already an entry and it's lower, keep that
-                    // todo implement get_cost
-                    let leg_1_cost = Self::get_cost(tunnel_costs, adjacent_1_id, valve.id);
-                    let leg_2_cost = Self::get_cost(tunnel_costs, adjacent_2_id, valve.id);
+                    let leg_1_cost = Self::get_cost(&tunnel_costs, adjacent_1_id, &valve.id);
+                    let leg_2_cost = Self::get_cost(&tunnel_costs, adjacent_2_id, &valve.id);
                     let summed_cost = leg_1_cost + leg_2_cost;
                     let adj_1_cost_entry = tunnel_costs
                         .entry(String::from(adjacent_1_id))
@@ -151,15 +150,37 @@ impl PathSearcher {
                     tunnel_locations
                         .entry(String::from(adjacent_1_id))
                         .or_insert(HashSet::new())
-                        .insert(adjacent_2_id);
+                        .insert(String::from(adjacent_2_id));
                     tunnel_locations
                         .entry(String::from(adjacent_2_id))
                         .or_insert(HashSet::new())
-                        .insert(adjacent_1_id);
+                        .insert(String::from(adjacent_1_id));
 
-                    // todo destroy all tunnel_locations referencing valve
-                    // todo destroy all tunnel_costs referencing valve
-                    // todo destroy valve
+                    // destroy all tunnel_locations referencing valve
+                    tunnel_locations
+                        .get_mut(&valve.id)
+                        .unwrap()
+                        .remove(adjacent_1_id);
+                    tunnel_locations
+                        .get_mut(adjacent_1_id)
+                        .unwrap()
+                        .remove(&valve.id);
+                    tunnel_locations
+                        .get_mut(&valve.id)
+                        .unwrap()
+                        .remove(adjacent_2_id);
+                    tunnel_locations
+                        .get_mut(adjacent_2_id)
+                        .unwrap()
+                        .remove(&valve.id);
+
+                    // destroy all tunnel_costs referencing valve
+                    // todo implement destroy_cost
+                    Self::destroy_cost(&mut tunnel_costs, adjacent_1_id, &valve.id);
+                    Self::destroy_cost(&mut tunnel_costs, adjacent_2_id, &valve.id);
+
+                    // destroy unwanted intermediate zero-flow-rate valve
+                    valves.remove(&valve.id);
                 }
             }
             // root or non-zero-flowrate valve: requires no modification
@@ -169,11 +190,24 @@ impl PathSearcher {
         println!("{:#?}", valves);
         println!("{:#?}", tunnel_costs);
         println!("{:#?}", tunnel_locations);
-        Self { valves, tunnels }
+        Self {
+            valves,
+            tunnel_costs,
+            tunnel_locations,
+        }
     }
 
     fn find_max_total_flow(&self) -> u32 {
         todo!()
+    }
+
+    fn get_cost(
+        tunnel_costs: &HashMap<String, HashMap<String, u32>>,
+        unsorted_id_1: &str,
+        unsorted_id_2: &str,
+    ) -> u32 {
+        let (id_1, id_2) = Self::sorted_id_pair(unsorted_id_1, unsorted_id_2);
+        *tunnel_costs.get(id_1).unwrap().get(id_2).unwrap()
     }
 
     fn sorted_id_pair<'a>(id1: &'a str, id2: &'a str) -> (&'a str, &'a str) {
@@ -185,10 +219,10 @@ impl PathSearcher {
     }
 
     // naive
-    fn unique_combinations(valve_ids: &[&str]) -> HashSet<(&str, &str)> {
+    fn unique_combinations(valve_ids: &[String]) -> HashSet<(&str, &str)> {
         let mut results = HashSet::new();
-        for v1 in valve_ids.iter().map(|s| &s[..]) {
-            for v2 in valve_ids.iter().map(|s| &s[..]) {
+        for v1 in valve_ids {
+            for v2 in valve_ids {
                 if v1 != v2 {
                     results.insert(Self::sorted_id_pair(v1, v2));
                 }
