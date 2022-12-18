@@ -10,6 +10,7 @@ fn main() {
     println!("Part 1 solution: {}", solution_1);
 }
 
+#[derive(Debug)]
 struct Valve {
     id: String,
     is_open: bool,
@@ -19,11 +20,22 @@ struct Valve {
 
 impl Valve {
     const ROOT_VALVE_ID: &'static str = "AA";
+    const MINUTES_TO_ENTER: u32 = 1;
 }
 
+#[derive(Debug)]
 struct AdjacentValve {
     id: String,
     minutes_to_enter: u32,
+}
+
+impl AdjacentValve {
+    fn new(id: &str) -> Self {
+        Self {
+            id: String::from(id),
+            minutes_to_enter: Valve::MINUTES_TO_ENTER,
+        }
+    }
 }
 
 struct SearchState {
@@ -67,17 +79,12 @@ impl PathSearcher {
 
         for line in reader.lines() {
             let line_content = line.unwrap();
-            println!("{}", line_content);
-            // todo fix panic
             let cap = re.captures(&line_content).unwrap();
             let valve_id = String::from(&cap[1]);
             let flow_per_minute = cap[2].parse::<u32>().unwrap();
             let adjacent_valves = cap[6]
                 .split(", ")
-                .map(|valve_id| AdjacentValve {
-                    id: String::from(valve_id),
-                    minutes_to_enter: 0,
-                })
+                .map(AdjacentValve::new)
                 .collect::<Vec<_>>();
 
             valves.insert(
@@ -94,6 +101,7 @@ impl PathSearcher {
         // prune valves by eliminating all that have zero flow rates (except root valve);
         // this should make upcoming search much, much faster
         // todo implement
+        println!("{:#?}", valves);
         Self { valves }
     }
 
