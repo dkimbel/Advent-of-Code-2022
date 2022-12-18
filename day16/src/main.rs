@@ -127,7 +127,7 @@ impl PathSearcher {
                 // appropriately-increased 'costs' (minutes to travel through tunnel).
                 let adjacent_valve_ids = &tunnel_locations[&valve.id]
                     .iter()
-                    .map(|&s| s)
+                    .cloned()
                     .collect::<Vec<_>>();
                 let unique_adjacent_pairs = Self::unique_combinations(adjacent_valve_ids);
 
@@ -199,6 +199,15 @@ impl PathSearcher {
 
     fn find_max_total_flow(&self) -> u32 {
         todo!()
+    }
+
+    fn destroy_cost(
+        tunnel_costs: &mut HashMap<String, HashMap<String, u32>>,
+        unsorted_id_1: &str,
+        unsorted_id_2: &str,
+    ) {
+        let (id_1, id_2) = Self::sorted_id_pair(unsorted_id_1, unsorted_id_2);
+        tunnel_costs.get_mut(id_1).unwrap().remove(id_2);
     }
 
     fn get_cost(
