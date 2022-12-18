@@ -158,17 +158,9 @@ impl PathSearcher {
 
                     // destroy all tunnel_locations referencing valve
                     tunnel_locations
-                        .get_mut(&valve.id)
-                        .unwrap()
-                        .remove(adjacent_1_id);
-                    tunnel_locations
                         .get_mut(adjacent_1_id)
                         .unwrap()
                         .remove(&valve.id);
-                    tunnel_locations
-                        .get_mut(&valve.id)
-                        .unwrap()
-                        .remove(adjacent_2_id);
                     tunnel_locations
                         .get_mut(adjacent_2_id)
                         .unwrap()
@@ -178,10 +170,11 @@ impl PathSearcher {
                     // todo implement destroy_cost
                     Self::destroy_cost(&mut tunnel_costs, adjacent_1_id, &valve.id);
                     Self::destroy_cost(&mut tunnel_costs, adjacent_2_id, &valve.id);
-
-                    // destroy unwanted intermediate zero-flow-rate valve
-                    valves.remove(&valve.id);
+                    tunnel_costs.remove(&valve.id);
                 }
+                tunnel_locations.remove(&valve.id);
+                tunnel_costs.remove(&valve.id);
+                valves.remove(&valve.id);
             }
             // root or non-zero-flowrate valve: requires no modification
         }
