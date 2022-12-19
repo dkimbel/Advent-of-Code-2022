@@ -17,12 +17,7 @@ type Coords = (isize, isize, isize);
 // 'particle' around the full outside surface. To do this (possibly naively?), search until
 // the particle has visited every space in the cube that it possibly can.
 fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
-    let mut coords_discovered_from_neg_x: HashSet<Coords> = HashSet::new();
-    let mut coords_discovered_from_pos_x: HashSet<Coords> = HashSet::new();
-    let mut coords_discovered_from_neg_y: HashSet<Coords> = HashSet::new();
-    let mut coords_discovered_from_pos_y: HashSet<Coords> = HashSet::new();
-    let mut coords_discovered_from_neg_z: HashSet<Coords> = HashSet::new();
-    let mut coords_discovered_from_pos_z: HashSet<Coords> = HashSet::new();
+    let mut surfaces_discovered = 0;
 
     let mut min_x = isize::MAX;
     let mut max_x = isize::MIN;
@@ -68,37 +63,37 @@ fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
         // todo reduce repetition of code
         let from_neg_x = (x + 1, y, z);
         if occupied_coords.contains(&from_neg_x) {
-            coords_discovered_from_neg_x.insert(from_neg_x);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_neg_x);
         }
         let from_pos_x = (x - 1, y, z);
         if occupied_coords.contains(&from_pos_x) {
-            coords_discovered_from_pos_x.insert(from_pos_x);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_pos_x);
         }
         let from_neg_y = (x, y + 1, z);
         if occupied_coords.contains(&from_neg_y) {
-            coords_discovered_from_neg_y.insert(from_neg_y);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_neg_y);
         }
         let from_pos_y = (x, y - 1, z);
         if occupied_coords.contains(&from_pos_y) {
-            coords_discovered_from_pos_y.insert(from_pos_y);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_pos_y);
         }
         let from_neg_z = (x, y, z + 1);
         if occupied_coords.contains(&from_neg_z) {
-            coords_discovered_from_neg_z.insert(from_neg_z);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_neg_z);
         }
         let from_pos_z = (x, y, z - 1);
         if occupied_coords.contains(&from_pos_z) {
-            coords_discovered_from_pos_z.insert(from_pos_z);
+            surfaces_discovered += 1;
         } else {
             coords_to_search.push_back(from_pos_z);
         }
@@ -106,12 +101,7 @@ fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
         visited.insert(coords);
     }
 
-    coords_discovered_from_neg_x.len()
-        + coords_discovered_from_pos_x.len()
-        + coords_discovered_from_neg_y.len()
-        + coords_discovered_from_pos_y.len()
-        + coords_discovered_from_neg_z.len()
-        + coords_discovered_from_pos_z.len()
+    surfaces_discovered
 }
 
 fn solve_part_one(coords: &[Coords]) -> (isize, HashSet<Coords>) {
