@@ -24,12 +24,12 @@ fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
     let mut coords_discovered_from_neg_z: HashSet<Coords> = HashSet::new();
     let mut coords_discovered_from_pos_z: HashSet<Coords> = HashSet::new();
 
-    let mut min_x = isize::MIN;
-    let mut max_x = isize::MAX;
-    let mut min_y = isize::MIN;
-    let mut max_y = isize::MAX;
-    let mut min_z = isize::MIN;
-    let mut max_z = isize::MAX;
+    let mut min_x = isize::MAX;
+    let mut max_x = isize::MIN;
+    let mut min_y = isize::MAX;
+    let mut max_y = isize::MIN;
+    let mut min_z = isize::MAX;
+    let mut max_z = isize::MIN;
 
     for coords in &occupied_coords {
         let (x, y, z) = (coords.0, coords.1, coords.2);
@@ -41,21 +41,69 @@ fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
         max_z = cmp::max(max_z, z);
     }
 
-    let starting_search_coords = (min_x, min_y, min_z);
-    if occupied_coords.contains(&starting_search_coords) {
-        panic!("Attempted to start search from occupied coordinates!");
-    }
+    // make sure we search all the way around the object (must see ALL its surface)
+    min_x -= 1;
+    min_y -= 1;
+    min_z -= 1;
+    max_x += 1;
+    max_y += 1;
+    max_z += 1;
 
     let mut visited: HashSet<Coords> = HashSet::new();
+    let starting_search_coords = (min_x, min_y, min_z);
     let mut coords_to_search = VecDeque::from([starting_search_coords]);
 
     while let Some(coords) = coords_to_search.pop_front() {
-        // todo no-op if visited
-        // todo no-op if out of bounds
-        // todo check surrounding six tiles
-        //   todo if occupied by lava, mutate relevant hashmap
-        //   todo if unoccupied by lava, push to coords_to_search
-        // todo add curr to visited
+        if visited.contains(&coords) {
+            continue;
+        }
+
+        let (x, y, z) = (coords.0, coords.1, coords.2);
+        if x > max_x || x < min_x || y > max_y || y < min_y || z > max_z || z < min_z {
+            continue;
+        }
+
+        // Check the surrounding six tiles. If they're part of the object, account for them;
+        // otherwise, add them to our deque so we'll search their surroundings too.
+        // todo reduce repetition of code
+        let from_neg_x = (x + 1, y, z);
+        if occupied_coords.contains(&from_neg_x) {
+            coords_discovered_from_neg_x.insert(from_neg_x);
+        } else {
+            coords_to_search.push_back(from_neg_x);
+        }
+        let from_pos_x = (x - 1, y, z);
+        if occupied_coords.contains(&from_pos_x) {
+            coords_discovered_from_pos_x.insert(from_pos_x);
+        } else {
+            coords_to_search.push_back(from_pos_x);
+        }
+        let from_neg_y = (x, y + 1, z);
+        if occupied_coords.contains(&from_neg_y) {
+            coords_discovered_from_neg_y.insert(from_neg_y);
+        } else {
+            coords_to_search.push_back(from_neg_y);
+        }
+        let from_pos_y = (x, y - 1, z);
+        if occupied_coords.contains(&from_pos_y) {
+            coords_discovered_from_pos_y.insert(from_pos_y);
+        } else {
+            coords_to_search.push_back(from_pos_y);
+        }
+        let from_neg_z = (x, y, z + 1);
+        if occupied_coords.contains(&from_neg_z) {
+            coords_discovered_from_neg_z.insert(from_neg_z);
+        } else {
+            coords_to_search.push_back(from_neg_z);
+        }
+        let from_pos_z = (x, y, z - 1);
+        if occupied_coords.contains(&from_pos_z) {
+            coords_discovered_from_pos_z.insert(from_pos_z);
+        } else {
+            coords_to_search.push_back(from_pos_z);
+        }
+
+        visited.insert(coords);
     }
 
     coords_discovered_from_neg_x.len()
