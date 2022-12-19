@@ -60,42 +60,19 @@ fn solve_part_two(occupied_coords: HashSet<Coords>) -> usize {
 
         // Check the surrounding six tiles. If they're part of the object, account for them;
         // otherwise, add them to our deque so we'll search their surroundings too.
-        // todo reduce repetition of code
-        let from_neg_x = (x + 1, y, z);
-        if occupied_coords.contains(&from_neg_x) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_neg_x);
-        }
-        let from_pos_x = (x - 1, y, z);
-        if occupied_coords.contains(&from_pos_x) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_pos_x);
-        }
-        let from_neg_y = (x, y + 1, z);
-        if occupied_coords.contains(&from_neg_y) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_neg_y);
-        }
-        let from_pos_y = (x, y - 1, z);
-        if occupied_coords.contains(&from_pos_y) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_pos_y);
-        }
-        let from_neg_z = (x, y, z + 1);
-        if occupied_coords.contains(&from_neg_z) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_neg_z);
-        }
-        let from_pos_z = (x, y, z - 1);
-        if occupied_coords.contains(&from_pos_z) {
-            surfaces_discovered += 1;
-        } else {
-            coords_to_search.push_back(from_pos_z);
+        for adjacent_coords in [
+            (x + 1, y, z),
+            (x - 1, y, z),
+            (x, y + 1, z),
+            (x, y - 1, z),
+            (x, y, z + 1),
+            (x, y, z - 1),
+        ] {
+            if occupied_coords.contains(&adjacent_coords) {
+                surfaces_discovered += 1;
+            } else {
+                coords_to_search.push_back(adjacent_coords);
+            }
         }
 
         visited.insert(coords);
